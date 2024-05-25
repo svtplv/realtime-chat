@@ -69,6 +69,13 @@ TEMPLATES = [
 ASGI_APPLICATION = "core.asgi.application"
 
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
+
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
