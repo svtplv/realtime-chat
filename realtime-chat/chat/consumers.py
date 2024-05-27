@@ -59,7 +59,7 @@ class ChatroomConsumer(AsyncWebsocketConsumer):
             ChatGroup.objects.prefetch_related("users_online"),
             pk=self.chatroom.pk,
         )
-        online_count = await self.chatroom.users_online.acount()
+        online_count = await self.chatroom.users_online.acount() - 1
         event = {"type": "online_count_handler", "online_count": online_count}
         await self.channel_layer.group_send(self.chatroom_name, event)
 
