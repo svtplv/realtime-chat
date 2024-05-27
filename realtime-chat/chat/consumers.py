@@ -6,7 +6,7 @@ from channels.generic.websocket import (
 from django.shortcuts import aget_object_or_404
 from django.template.loader import render_to_string
 
-from .models import ChatGroup, GroupMessage
+from .models import ChatGroup, GroupMessage, Presence
 
 
 class ChatroomConsumer(AsyncWebsocketConsumer):
@@ -14,24 +14,27 @@ class ChatroomConsumer(AsyncWebsocketConsumer):
         self.user = self.scope["user"]
         self.chatroom_name = self.scope["url_route"]["kwargs"]["chatroom_name"]
         self.chatroom = await aget_object_or_404(
-            ChatGroup.objects.prefetch_related("users_online"),
+            ChatGroup,
             group_name=self.chatroom_name,
         )
         await self.channel_layer.group_add(
-            self.chatroom_name, self.channel_name
+            self.chatroom_name,
+            self.channel_name,
         )
-        if self.user not in self.chatroom.users_online.all():
-            await self.chatroom.users_online.aadd(self.user)
-            await self.update_online_count()
+        await Presence.objects.aget_or_create(
+            chat=self.chatroom, user=self.user
+        )
+        await self.update_online_count()
         await self.accept()
 
     async def disconnect(self, close_code):
+        await Presence.objects.filter(
+            chat=self.chatroom.id, user=self.user.id
+        ).adelete()
+        await self.update_online_count()
         await self.channel_layer.group_discard(
             self.chatroom_name, self.channel_name
         )
-        if self.user in self.chatroom.users_online.all():
-            await self.chatroom.users_online.aremove(self.user)
-            await self.update_online_count()
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
@@ -55,11 +58,9 @@ class ChatroomConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=html)
 
     async def update_online_count(self):
-        self.chatroom = await aget_object_or_404(
-            ChatGroup.objects.prefetch_related("users_online"),
-            pk=self.chatroom.pk,
-        )
-        online_count = await self.chatroom.users_online.acount() - 1
+        online_count = await Presence.objects.filter(
+            chat=self.chatroom.id
+        ).acount() - 1
         event = {"type": "online_count_handler", "online_count": online_count}
         await self.channel_layer.group_send(self.chatroom_name, event)
 
