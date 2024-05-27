@@ -16,7 +16,7 @@ def chat_view(request, chatroom_name="public_chat", other_user=None):
         ChatGroup.objects.prefetch_related("chat_messages", "members"),
         group_name=chatroom_name,
     )
-    chat_messages = chat_group.chat_messages.all()[:30]
+    chat_messages = chat_group.chat_messages.all()
     form = ChatMessageCreateForm()
 
     if chat_group.is_private:
