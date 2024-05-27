@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 
 from channels.generic.websocket import (
     AsyncWebsocketConsumer,
@@ -6,10 +7,12 @@ from channels.generic.websocket import (
 from django.shortcuts import aget_object_or_404
 from django.template.loader import render_to_string
 
-from .models import ChatGroup, GroupMessage, Presence
+from .models import ChatGroup, GroupMessage
 
 
 class ChatroomConsumer(AsyncWebsocketConsumer):
+    presence = defaultdict(set)
+
     async def connect(self):
         self.user = self.scope["user"]
         self.chatroom_name = self.scope["url_route"]["kwargs"]["chatroom_name"]
@@ -21,16 +24,12 @@ class ChatroomConsumer(AsyncWebsocketConsumer):
             self.chatroom_name,
             self.channel_name,
         )
-        await Presence.objects.aget_or_create(
-            chat=self.chatroom, user=self.user
-        )
+        self.presence[self.chatroom_name].add(self.user.id)
         await self.update_online_count()
         await self.accept()
 
     async def disconnect(self, close_code):
-        await Presence.objects.filter(
-            chat=self.chatroom.id, user=self.user.id
-        ).adelete()
+        self.presence[self.chatroom_name].discard(self.user.id)
         await self.update_online_count()
         await self.channel_layer.group_discard(
             self.chatroom_name, self.channel_name
@@ -58,9 +57,7 @@ class ChatroomConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=html)
 
     async def update_online_count(self):
-        online_count = await Presence.objects.filter(
-            chat=self.chatroom.id
-        ).acount() - 1
+        online_count = len(self.presence[self.chatroom_name]) - 1
         event = {"type": "online_count_handler", "online_count": online_count}
         await self.channel_layer.group_send(self.chatroom_name, event)
 

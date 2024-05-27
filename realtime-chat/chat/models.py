@@ -10,9 +10,6 @@ class ChatGroup(models.Model):
     group_name = models.CharField(
         max_length=128, unique=True, default=shortuuid.uuid
     )
-    users_online = models.ManyToManyField(
-        User, through="Presence", related_name="online_in_groups", blank=True
-    )
     members = models.ManyToManyField(
         User, related_name="chat_groups", blank=True
     )
@@ -35,8 +32,3 @@ class GroupMessage(models.Model):
 
     def __str__(self) -> str:
         return f"{self.author.username} : {self.body}"
-
-
-class Presence(models.Model):
-    chat = models.ForeignKey(ChatGroup, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
