@@ -10,6 +10,14 @@ class ChatGroup(models.Model):
     group_name = models.CharField(
         max_length=128, unique=True, default=shortuuid.uuid
     )
+    custom_name = models.CharField(max_length=128, null=True, blank=True)
+    admin = models.ForeignKey(
+        User,
+        related_name="groupchats",
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+    )
     members = models.ManyToManyField(
         User, related_name="chat_groups", blank=True
     )
