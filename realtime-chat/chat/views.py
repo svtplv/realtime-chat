@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 
 from .models import ChatGroup, GroupMessage
-from .forms import ChatMessageCreateForm
+from .forms import ChatMessageCreateForm, NewGroupChatForm
 
 
 User = get_user_model()
@@ -62,3 +62,20 @@ def get_or_create_chatroom(request, username):
         chatroom.members.add(other_user, request.user)
 
     return redirect("chatroom", chatroom.group_name)
+
+
+@login_required
+def create_groupchat(request):
+    form = NewGroupChatForm()
+
+    if request.method == "POST":
+        form = NewGroupChatForm(request.POST)
+        if form.is_valid():
+            new_groupchat = form.save(commit=False)
+            new_groupchat.admin = request.user
+            new_groupchat.save()
+            new_groupchat.members.add(request.user)
+            return redirect('chatroom', new_groupchat.group_name)
+
+    context = {"form": form}
+    return render(request, "chat/create_groupchat.html", context)
