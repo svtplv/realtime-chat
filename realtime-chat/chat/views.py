@@ -75,7 +75,15 @@ def create_groupchat(request):
             new_groupchat.admin = request.user
             new_groupchat.save()
             new_groupchat.members.add(request.user)
-            return redirect('chatroom', new_groupchat.group_name)
+            return redirect("chatroom", new_groupchat.group_name)
 
     context = {"form": form}
     return render(request, "chat/create_groupchat.html", context)
+
+
+@login_required
+def get_user_chats(request):
+    if request.htmx:
+        chatrooms = request.user.chat_groups.all()
+        context = {"chatrooms": chatrooms}
+        return render(request, "chat/partials/user_chats_p.html", context)

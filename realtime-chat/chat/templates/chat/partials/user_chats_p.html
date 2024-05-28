@@ -1,0 +1,13 @@
+
+<ul id="user_chats" class="hoverlist [&>li>a]:justify-end">
+    <li><a href="{% url 'home' %}">Public Chat</a></li>
+    {% for chatroom in user.chat_groups.all %}
+        {% if chatroom.is_private %}
+            {% for member in chatroom.members.all %}
+                {% if member != user %}
+                <li><a href="{% url 'chatroom' chatroom.group_name %}">{{ member.profile.name }}</a></li>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+</ul>
