@@ -48,7 +48,7 @@ class ChatroomConsumer(AsyncWebsocketConsumer):
     async def message_handler(self, event):
         message_id = event["message_id"]
         message = await GroupMessage.objects.select_related(
-            "author", "author__profile"
+            "author__profile"
         ).aget(id=message_id)
         context = {"message": message, "user": self.user}
         html = render_to_string(
