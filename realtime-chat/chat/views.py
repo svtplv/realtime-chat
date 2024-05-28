@@ -13,7 +13,12 @@ User = get_user_model()
 @login_required
 def chat_view(request, chatroom_name="public_chat", other_user=None):
     chat_group = get_object_or_404(
-        ChatGroup.objects.prefetch_related("chat_messages", "members"),
+        ChatGroup.objects.prefetch_related(
+            "chat_messages",
+            "members",
+            # "chat_messages__author",
+            "chat_messages__author__profile",
+        ),
         group_name=chatroom_name,
     )
     chat_messages = chat_group.chat_messages.all()
@@ -22,9 +27,9 @@ def chat_view(request, chatroom_name="public_chat", other_user=None):
     if chat_group.is_private:
         if request.user not in chat_group.members.all():
             raise Http404()
-        other_user = chat_group.members.all().exclude(
-            id=request.user.id
-        ).first()
+        other_user = (
+            chat_group.members.all().exclude(id=request.user.id).first()
+        )
 
     context = {
         "chat_messages": chat_messages,

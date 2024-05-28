@@ -14,7 +14,9 @@ User = get_user_model()
 
 def profile_view(request, username=None):
     if username:
-        profile = get_object_or_404(User, username=username).profile
+        profile = get_object_or_404(
+            User.objects.select_related("profile"), username=username
+        ).profile
     elif request.user.is_authenticated:
         profile = request.user.profile
     else:
