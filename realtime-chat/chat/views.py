@@ -3,7 +3,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 
-from .models import ChatGroup
+from .models import ChatGroup, GroupMessage
 from .forms import ChatMessageCreateForm
 
 
@@ -12,25 +12,31 @@ User = get_user_model()
 
 @login_required
 def chat_view(request, chatroom_name="public_chat", other_user=None):
-    chat_group = get_object_or_404(
-        ChatGroup.objects.prefetch_related(
-            "chat_messages",
-            "members",
-            # "chat_messages__author",
-            "chat_messages__author__profile",
-        ),
-        group_name=chatroom_name,
-    )
-    chat_messages = chat_group.chat_messages.all()
-    form = ChatMessageCreateForm()
 
-    if chat_group.is_private:
-        if request.user not in chat_group.members.all():
-            raise Http404()
-        other_user = (
-            chat_group.members.all().exclude(id=request.user.id).first()
+    if chatroom_name == "public_chat":
+        chat_messages = GroupMessage.objects.filter(
+            group__group_name=chatroom_name
+        ).select_related("author__profile")
+
+    else:
+        chat_group = get_object_or_404(
+            ChatGroup.objects.prefetch_related("members"),
+            group_name=chatroom_name,
         )
+        chat_messages = GroupMessage.objects.filter(
+            group=chat_group.id
+        ).select_related("author__profile")
 
+        if chat_group.is_private:
+            if request.user not in chat_group.members.all():
+                raise Http404()
+            (other_user,) = (
+                member
+                for member in chat_group.members.all()
+                if member != request.user
+            )
+
+    form = ChatMessageCreateForm()
     context = {
         "chat_messages": chat_messages,
         "form": form,
