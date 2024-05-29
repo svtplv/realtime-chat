@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
-
 from .models import ChatGroup, GroupMessage
 from .forms import ChatMessageCreateForm, NewGroupChatForm
 
@@ -84,6 +83,9 @@ def create_groupchat(request):
 @login_required
 def get_user_chats(request):
     if request.htmx:
-        chatrooms = request.user.chat_groups.all()
+        chatrooms = request.user.chat_groups.all().prefetch_related(
+            "members__profile"
+        )
         context = {"chatrooms": chatrooms}
         return render(request, "chat/partials/user_chats_p.html", context)
+    raise Http404
